@@ -1,0 +1,25 @@
+﻿<Window x:Class="WpfGrejs.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfGrejs"
+        xmlns:vm="clr-namespace:WpfGrejs.ViewModel"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="720" Width="1280">
+    <Window.Resources>
+        <vm:MainViewModel x:Key="MainVm" />
+    </Window.Resources>
+
+    <Grid Background="#171717"
+          DataContext="{StaticResource MainVm}">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /> <!-- For the header and input area -->
+            <RowDefinition Height="*" /> <!-- For the ListBox to take the remaining space -->
+        </Grid.RowDefinitions>
+        
+        <Frame Name="MainFrame" NavigationUIVisibility="Hidden" Background="#171717"/>
+        
+    </Grid>
+</Window>
