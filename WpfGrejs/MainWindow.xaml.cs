@@ -8,14 +8,12 @@ namespace WpfGrejs;
 /// </summary>
 public partial class MainWindow : Window
 {
-    
     private readonly MainViewModel _viewModel;
     public MainWindow()
     {
         _viewModel = MainViewModel.Instance;
         this.DataContext = _viewModel;
         InitializeComponent();
-        
         MainFrame.Navigate(new TransactionsOverviewPage());
     }
     

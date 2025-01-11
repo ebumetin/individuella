@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using WpfGrejs.Models;
+using WpfGrejs.Utils;
 
 namespace WpfGrejs.ViewModel;
 
@@ -13,6 +14,7 @@ public class MainViewModel : INotifyCollectionChanged, INotifyPropertyChanged
     private static MainViewModel? _instance;
 
     public bool FilterView { get; set; } = false;
+    public User? CurrentUser { get; set; } = null;
     
     private MainViewModel()
     {
@@ -71,7 +73,6 @@ public class MainViewModel : INotifyCollectionChanged, INotifyPropertyChanged
                     Period = g.Key.ToString(),
                     Transactions = g.Count()
                 }).ToList());
-            Console.WriteLine(transactionsFilter.Count);
             return transactionsFilter;
         }
 
@@ -86,7 +87,6 @@ public class MainViewModel : INotifyCollectionChanged, INotifyPropertyChanged
                     Period = $"{g.Key.Year}-{g.Key.Month:00}", // Period as Year-Month
                     Transactions = g.Count() // Count the number of transactions for each month
                 }).ToList());
-            Console.WriteLine(transactionsFilter.Count);
             return transactionsFilter;
         }
 
@@ -103,7 +103,6 @@ public class MainViewModel : INotifyCollectionChanged, INotifyPropertyChanged
                     Period = $"{g.Key.year} - Week {g.Key.weeknr:00}",
                     Transactions = g.Count()
                 }).ToList());
-            Console.WriteLine(transactionsFilter.Count);
             return transactionsFilter;
         }
 
@@ -121,7 +120,6 @@ public class MainViewModel : INotifyCollectionChanged, INotifyPropertyChanged
                     Period = $"{g.Key.Year}-{g.Key.Month:00}-{g.Key.Day:00}",
                     Transactions = g.Count()
                 }).ToList());
-            Console.WriteLine(transactionsFilter.Count);
             return transactionsFilter;
         }
 
@@ -133,9 +131,7 @@ public class MainViewModel : INotifyCollectionChanged, INotifyPropertyChanged
                 Amount = t.Amount,
                 Period = t.TransactionDate.ToString("yyyy-MM-dd")
             }).ToList());
-
-
-        Console.WriteLine(transactionsFilter.Count);
+        
         return transactionsFilter;
     }
 
@@ -148,7 +144,7 @@ public class MainViewModel : INotifyCollectionChanged, INotifyPropertyChanged
     //--
     public void AddTransaction(double amount, string description, DateTime date)
     {
-        var nextId = Transactions.Select(t => t.Id).Max() + 1;
+        var nextId = Transactions.Count > 0 ? Transactions.Select(t => t.Id).Max() + 1 : 0;
         Transactions.Add(new Transaction
         {
             Id = nextId,
@@ -156,6 +152,7 @@ public class MainViewModel : INotifyCollectionChanged, INotifyPropertyChanged
             TransactionDate = date,
             Description = description
         });
+        var client = new DbClient();
     }
 
     //--
