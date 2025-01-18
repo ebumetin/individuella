@@ -7,9 +7,9 @@ namespace WpfGrejs;
 public partial class TransactionsFiltersPage : Page
 {
     private readonly MainViewModel _viewModel;
-    public TransactionsFiltersPage()
+    public TransactionsFiltersPage(MainViewModel viewModel)
     {
-        _viewModel = MainViewModel.Instance;
+        _viewModel = viewModel;
         this.DataContext = _viewModel;
         InitializeComponent();
         FilterList.ItemsSource = _viewModel.FilteredTransactions;
@@ -23,7 +23,7 @@ public partial class TransactionsFiltersPage : Page
         // Access the MainFrame in MainWindow and navigate to AdditionalDetailsPage
         if (Window.GetWindow(this) is MainWindow mainWindow)
         {
-            mainWindow.MainFrame.Navigate(new TransactionsOverviewPage());
+            mainWindow.MainFrame.Navigate(new TransactionsOverviewPage(_viewModel));
         }
     }
 

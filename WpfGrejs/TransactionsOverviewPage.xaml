@@ -6,13 +6,10 @@
       xmlns:local="clr-namespace:WpfGrejs"
       xmlns:vm="clr-namespace:WpfGrejs.ViewModel"
       mc:Ignorable="d"
-      Title="TransactionsOverview" Height="720" Width="1280">
-    
-    <Page.Resources>
-        <vm:MainViewModel x:Key="MainVm" />
-    </Page.Resources>
+      Title="TransactionsOverview" Height="720" Width="1280"
+      DataContext="{StaticResource MainViewModel}">
     <Grid Background="#171717"
-          DataContext="{StaticResource MainVm}">
+          DataContext="{StaticResource MainViewModel}">
 
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /> <!-- For the header and input area -->
@@ -20,12 +17,29 @@
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Center"
                     Margin="0,20,0,0">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                        Background="#cdf0b9">
-                <Label FontSize="24">Balance:</Label>
-                <Label Name="BalanceLbl" Content="{Binding Balance}" FontSize="24" />
-                <Label FontSize="24">:-</Label>
-            </StackPanel>
+            <Grid Background="LightYellow" HorizontalAlignment="Stretch" VerticalAlignment="Center" DataContext="{StaticResource MainViewModel}">
+                <Grid.ColumnDefinitions>
+                    <!-- First column for balance-related components -->
+                    <ColumnDefinition Width="*" />
+                    <!-- Second column for the label and button aligned to the right -->
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="10" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Balance Components (left) -->
+                <StackPanel Orientation="Horizontal" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <Label FontSize="24">Balance:</Label>
+                    <Label Name="BalanceLbl" Content="{Binding Balance }" FontSize="24" />
+                    <Label FontSize="24">:-</Label>
+                </StackPanel>
+
+                <!-- Username and Sign Out Button (right) -->
+                <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Label FontSize="20" Content="Inloggad som:" VerticalContentAlignment="Stretch" />
+                    <Label x:Name="UsernameLbl" FontSize="20" VerticalContentAlignment="Stretch" Margin="0,0,8,0" />
+                    <Button FontSize="22" Background="HotPink" Padding="8,0,8,0" Margin="0,0,8,0" Click="Signout_OnClick">Sign out</Button>
+                </StackPanel>
+            </Grid>
             <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Center"
                         Margin="0,20,0,0">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch" VerticalAlignment="Center">

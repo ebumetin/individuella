@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using WpfGrejs.Models;
 using WpfGrejs.ViewModel;
 
 namespace WpfGrejs;
@@ -8,13 +9,15 @@ namespace WpfGrejs;
 /// </summary>
 public partial class MainWindow : Window
 {
-    private readonly MainViewModel _viewModel;
-    public MainWindow()
+    public MainWindow(User user)
     {
-        _viewModel = MainViewModel.Instance;
-        this.DataContext = _viewModel;
+        var viewModel = new MainViewModel
+        {
+            CurrentUser = user
+        };
+        this.DataContext = viewModel;
         InitializeComponent();
-        MainFrame.Navigate(new TransactionsOverviewPage());
+        MainFrame.Navigate(new TransactionsOverviewPage(viewModel));
     }
     
 }

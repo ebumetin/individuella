@@ -1,11 +1,13 @@
+using System.Text.Json;
 using Npgsql;
+using NpgsqlTypes;
 using WpfGrejs.Models;
 
 namespace WpfGrejs.Utils;
 
 public class DbClient
 {
-    private const string ConnString = "Server=127.0.0.1;Port=5432;Database=postgres;User Id=postgres;Password=password;";
+    private const string ConnString = "Server=127.0.0.1;Port=5432;Database=individuella;User Id=postgres;Password=password;";
 
     private async Task<NpgsqlConnection> GetConnection()
     {
@@ -38,19 +40,21 @@ public class DbClient
         return transactions;
     }
 
-    public async Task<int> AddTransaction(int userId, double amount, string description, DateTime date)
+    public async Task<int?> AddTransaction(Transaction transaction)
     {
         var conn = await GetConnection();
                      
         await using (var cmd = new NpgsqlCommand(
-                         "INSERT INTO transactions (userid, amount, type, datetime) VALUES (@userid, @amount, @type, @datetime)"
-                         , conn))
+                         "INSERT INTO transactions (userid, amount, description, transactiondate) VALUES (@userid, @amount, @description, @transactiondate) RETURNING transactionid",
+                         conn))
         {
-            cmd.Parameters.AddWithValue("userid", userId);
-            cmd.Parameters.AddWithValue("amount", amount);
-            cmd.Parameters.AddWithValue("type", description);
-            cmd.Parameters.AddWithValue("datetime", date);
-            return await cmd.ExecuteNonQueryAsync();
+            cmd.Parameters.AddWithValue("userid", transaction.UserId);
+            cmd.Parameters.AddWithValue("amount", transaction.Amount);
+            cmd.Parameters.AddWithValue("description", transaction.Description);
+            cmd.Parameters.AddWithValue("transactiondate", transaction.TransactionDate);
+
+            var newId = await cmd.ExecuteScalarAsync();
+            return (int)newId!;
         }
     }
 
@@ -68,14 +72,90 @@ public class DbClient
 
     public async Task<int> CreateUser(string username, string hashedPassword)
     {
-        var conn = await GetConnection();
-
-        await using (var cmd = new NpgsqlCommand(
-                         "INSERT INTO users (username, hashedpassword) VALUES (@username, @hashedpassword)", conn))
+        try
         {
-            cmd.Parameters.AddWithValue("username", username);
-            cmd.Parameters.AddWithValue("hashedpassword", hashedPassword);
-            return await cmd.ExecuteNonQueryAsync();
+            var conn = await GetConnection(); // Skapa anslutning till databasen
+            try
+            {
+                await using (var cmd = new NpgsqlCommand(
+                                 "INSERT INTO users (username, hashedpassword) VALUES (@username, @hashedpassword)", conn))
+                {
+                    //cmd.Parameters.AddWithValue("username", username); // Lägg till användarnamn som parameter
+                    //cmd.Parameters.AddWithValue("hashedpassword", hashedPassword); // Lägg till hashat lösenord som parameter
+                
+                    cmd.Parameters.Add("username", NpgsqlDbType.Text).Value = username;
+                    cmd.Parameters.Add("hashedpassword", NpgsqlDbType.Text).Value = hashedPassword;
+                
+                    return await cmd.ExecuteNonQueryAsync(); // Kör kommandot och returnera nya id:t
+                }
+            } catch (Exception e) {
+                Console.WriteLine($"DBError: {e.Message}");
+                throw;
+            }
+            
+        }
+        catch (PostgresException ex) when (ex.SqlState == "23505") // Unik constraint-överträdelse
+        {
+            Console.WriteLine("Användarnamnet är redan registrerat.");
+            return -1; // Indikerar att användarnamnet redan finns
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fel vid registrering: {ex.Message}");
+            return 0; // Indikerar att ett generellt fel inträffade
+        }
+    }
+
+    
+    public async Task<string?> GetPasswordHash(string username)
+    {
+        try
+        {
+            var conn = await GetConnection();
+            await using (var cmd = new NpgsqlCommand(
+                             "SELECT hashedpassword FROM users WHERE username = @username::text", conn)) // Lägg till "::text"
+            {
+                cmd.Parameters.AddWithValue("username", username);
+                Console.WriteLine($"Executing SQL: SELECT hashedpassword FROM users WHERE username = '{username}'");
+                var result = await cmd.ExecuteScalarAsync();
+                return result?.ToString();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fel vid hämtning av lösenord: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<User?> GetUser(string username)
+    {
+        try
+        {
+            var conn = await GetConnection();
+            await using (var cmd = new NpgsqlCommand(
+                             "SELECT * FROM users WHERE username = @username", conn)) // Lägg till "::text"
+            {
+                cmd.Parameters.AddWithValue("username", username);
+                await using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    if (await reader.ReadAsync())
+                    {
+                        return new User()
+                        {
+                            Id = reader.GetInt32(0),
+                            Username = reader.GetString(1),
+                        };
+                    }
+                    return null;
+                }
+            }
+
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Fel vid hämtning av lösenord: {e.Message}");
+            return null;
         }
     }
 }

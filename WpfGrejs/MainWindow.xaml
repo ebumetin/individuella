@@ -6,13 +6,11 @@
         xmlns:local="clr-namespace:WpfGrejs"
         xmlns:vm="clr-namespace:WpfGrejs.ViewModel"
         mc:Ignorable="d"
-        Title="MainWindow" Height="720" Width="1280">
-    <Window.Resources>
-        <vm:MainViewModel x:Key="MainVm" />
-    </Window.Resources>
+        Title="MainWindow" Height="720" Width="1280"
+        DataContext="{StaticResource MainViewModel}">
 
     <Grid Background="#171717"
-          DataContext="{StaticResource MainVm}">
+          DataContext="{StaticResource MainViewModel}">
 
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /> <!-- For the header and input area -->

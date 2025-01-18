@@ -3,50 +3,159 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Windows;
 using WpfGrejs.Models;
 using WpfGrejs.Utils;
 
 namespace WpfGrejs.ViewModel;
 
-public class MainViewModel : INotifyCollectionChanged, INotifyPropertyChanged
+public sealed class MainViewModel : INotifyCollectionChanged, INotifyPropertyChanged
 {
-
-    private static MainViewModel? _instance;
-
+    
+    private readonly DbClient _dbClient = new DbClient();
+    
     public bool FilterView { get; set; } = false;
     public User? CurrentUser { get; set; } = null;
-    
-    private MainViewModel()
-    {
-        Transactions.CollectionChanged += (s, e) => OnPropertyChanged(nameof(Balance));
-    }
-    
-    public static MainViewModel Instance
-    {
-        get
-        {
-            if (_instance == null)
-            {
-                _instance = new MainViewModel();
-            }
 
-            return _instance;
+    public void GetTransactions()
+    {
+        if (CurrentUser == null)
+        {
+            Console.WriteLine("You are not signed in.");
+            return;
+        }
+
+        _ = GetTransactionsAsync();
+    }
+
+    private async Task GetTransactionsAsync()
+    {
+        try
+        {
+            var transactions = await _dbClient.GetTransactions(CurrentUser.Id);
+            Console.WriteLine("{0} transactions retrieved.", transactions.Count);
+
+            // Update the collection on the UI thread
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Transactions.Clear(); // Clear existing items
+                foreach (var transaction in transactions)
+                {
+                    Transactions.Add(transaction); // Add items one by one
+                }
+                
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving transactions: {ex.Message}");
         }
     }
     
-    public ObservableCollection<Transaction> Transactions { get; } = new()
+    public void AddTransaction(double amount, string description, DateTime date)
     {
-        new Transaction { Id = 1, Amount = 100, TransactionDate = new DateTime(2022, 7, 2), Description = "Mat" },
-        new Transaction { Id = 2, Amount = 200, TransactionDate = new DateTime(2023, 5, 3), Description = "Kläder" },
-        new Transaction { Id = 3, Amount = 100, TransactionDate = new DateTime(2023, 5, 4), Description = "Mat" },
-        new Transaction { Id = 4, Amount = 200, TransactionDate = new DateTime(2023, 5, 5), Description = "Kläder" },
-        new Transaction { Id = 5, Amount = 100, TransactionDate = new DateTime(2023, 5, 6), Description = "Mat" },
-        new Transaction { Id = 6, Amount = 200, TransactionDate = new DateTime(2024, 1, 1), Description = "Kläder" },
-        new Transaction { Id = 7, Amount = 100, TransactionDate = new DateTime(2024, 3, 1), Description = "Mat" },
-        new Transaction { Id = 8, Amount = 200, TransactionDate = new DateTime(2024, 3, 1), Description = "Kläder" }
-    };
+        if (CurrentUser == null)
+        {
+            Console.WriteLine("You are not signed in.");
+            return;
+        }
+        var transaction = new Transaction
+        {
+            UserId = CurrentUser.Id,
+            Amount = amount,
+            TransactionDate = date,
+            Description = description
+        };
 
-    public double Balance => Transactions.Sum(t => t.Amount);
+        _ = AddTransactionAsync(transaction);
+    }
+
+    private async Task AddTransactionAsync(Transaction transaction)
+    {
+        try
+        {
+            var transactionId = await _dbClient.AddTransaction(transaction);
+            Console.WriteLine("new transaction id {0}", transactionId);
+
+            if (!transactionId.HasValue)
+            {
+                Console.WriteLine("Failed to create new transaction.");
+                return;
+            }
+            
+            transaction.Id = transactionId.Value;
+
+            // Update the collection on the UI thread
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Transactions.Add(transaction);
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error adding transaction: {ex.Message}");
+        }
+    }
+    
+    public void DeleteTransaction(int id)
+    {
+        if (CurrentUser == null)
+        {
+            Console.WriteLine("You are not signed in.");
+            return;
+        }
+        var transaction = Transactions.FirstOrDefault(t => t.Id == id);
+        if (transaction != null)
+        {
+            _ = DeleteTransactionAsync(transaction);
+        }
+        else
+        {
+            Console.WriteLine($"Transaction {id} not found");
+        }
+    }
+
+    private async Task DeleteTransactionAsync(Transaction transaction)
+    {
+        try
+        {
+            var rowsAffected = await _dbClient.DeleteTransaction(transaction.Id);
+            Console.WriteLine("rows affect {0}", rowsAffected);
+
+            switch (rowsAffected)
+            {
+                case 0:
+                    Console.WriteLine("Failed to delete transaction.");
+                    return;
+                case > 1:
+                    Console.WriteLine("WARNING: Too many rows were deleted.");
+                    return;
+                default:
+                    // Update the collection on the UI thread
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        Transactions.Remove(transaction);
+                    });
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting transaction: {ex.Message}");
+        }
+    }
+
+
+
+    public ObservableCollection<Transaction> Transactions { get; set; } = new();
+
+    public double Balance
+    {
+        get
+        {
+            return Transactions.Sum(transaction => transaction.Amount);
+        }
+    }
 
     public TransactionsFilterType TransactionsFilterType { get; set; } = TransactionsFilterType.Income; // 1 = Income, 2 = Expense
     public TransactionsFilterPeriod TransactionsFilterPeriod { get; set; } = TransactionsFilterPeriod.Monthly; // 1 = Yearly, 2 = Monthly, 3 = Weekly, 4 = Daily
@@ -135,39 +244,6 @@ public class MainViewModel : INotifyCollectionChanged, INotifyPropertyChanged
         return transactionsFilter;
     }
 
-    public void RefreshTransactions()
-    {
-        OnPropertyChanged(nameof(Transactions));
-        OnPropertyChanged(nameof(FilteredTransactions));
-    }
-
-    //--
-    public void AddTransaction(double amount, string description, DateTime date)
-    {
-        var nextId = Transactions.Count > 0 ? Transactions.Select(t => t.Id).Max() + 1 : 0;
-        Transactions.Add(new Transaction
-        {
-            Id = nextId,
-            Amount = amount,
-            TransactionDate = date,
-            Description = description
-        });
-        var client = new DbClient();
-    }
-
-    //--
-    public void DeleteTransaction(int id)
-    {
-        var transaction = Transactions.FirstOrDefault(t => t.Id == id);
-        if (transaction != null)
-        {
-            Transactions.Remove(transaction);
-        }
-        else
-        {
-            Console.WriteLine($"Transaction {id} not found");
-        }
-    }
     
     public int GetWeekNumber(DateTime date)
     {
@@ -185,12 +261,12 @@ public class MainViewModel : INotifyCollectionChanged, INotifyPropertyChanged
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+    private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {
         if (EqualityComparer<T>.Default.Equals(field, value)) return false;
         field = value;
