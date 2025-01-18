@@ -39,9 +39,9 @@
 
                 <!-- Username and Sign Out Button (right) -->
                 <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Label FontSize="24" Content="Inloggad som: " />
-                    <Label FontSize="24" MinWidth="200" HorizontalContentAlignment="Left" Content="{Binding Username}" />
-                    <Button FontSize="22" Background="HotPink" Padding="8,0,8,0">Sign out</Button>
+                    <Label FontSize="20" Content="Inloggad som:" VerticalContentAlignment="Stretch" />
+                    <Label x:Name="UsernameLbl" FontSize="20" VerticalContentAlignment="Stretch" Margin="0,0,8,0" />
+                    <Button FontSize="22" Background="HotPink" Padding="8,0,8,0" Margin="0,0,8,0" Click="Signout_OnClick">Sign out</Button>
                 </StackPanel>
             </Grid>
             <StackPanel Orientation="Vertical" HorizontalAlignment="Left" VerticalAlignment="Bottom"

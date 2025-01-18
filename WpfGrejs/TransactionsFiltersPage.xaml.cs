@@ -16,6 +16,7 @@ public partial class TransactionsFiltersPage : Page
         BalanceLbl.Content = _viewModel.Balance;
         FilterTypeComboBox.SelectedIndex = 0;
         PeriodComboBox.SelectedIndex = 1;
+        UsernameLbl.Content = (_viewModel.CurrentUser?.Username);
     }
 
     private void GoBackButton_OnClick(object sender, RoutedEventArgs e)
@@ -59,4 +60,20 @@ public partial class TransactionsFiltersPage : Page
             FilterList.ItemsSource = _viewModel.FilteredTransactions;
         }
     }
+    private void Signout_OnClick(object sender, RoutedEventArgs e)
+    {
+        // Rensa information om inloggad användare
+        _viewModel.CurrentUser = null;
+
+        // Öppna loginfönstret
+        var loginWindow = new LoginWindow();
+        loginWindow.Show();
+
+        // Stäng det nuvarande huvudfönstret
+        if (Window.GetWindow(this) is MainWindow mainWindow)
+        {
+            mainWindow.Close();
+        }
+    }
+
 }
